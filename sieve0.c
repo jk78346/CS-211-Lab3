@@ -32,11 +32,11 @@ int main(int argc, char *argv[]) {
 
     MPI_Init(&argc, &argv);
 
+    MPI_Barrier(MPI_COMM_WORLD);
     /* Start the timer */
 
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     MPI_Comm_size(MPI_COMM_WORLD, &p);
-    MPI_Barrier(MPI_COMM_WORLD);
     elapsed_time = -MPI_Wtime();
 
     if (argc != 2) {
@@ -91,12 +91,12 @@ int main(int argc, char *argv[]) {
             while (marked[++index]);
             prime = index + 2;
         }
-        if (p > 1) MPI_Bcast(&prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
     } while (prime * prime <= n);
     count = 0;
     for (i = 0; i < size; i++)
         if (!marked[i]) count++;
-    if (p > 1)
+    //if (p > 1)
         MPI_Reduce(&count, &global_count, 1, MPI_INT, MPI_SUM,
                    0, MPI_COMM_WORLD);
 
