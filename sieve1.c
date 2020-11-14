@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 
     /* Allocate this process's share of the array. */
 
-    marked = (char *) malloc(size);
+    marked = (char *) malloc(size/2);
 
     if (marked == NULL) {
         printf("Cannot allocate enough memory\n");
@@ -76,9 +76,9 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    for (i = 0; i < size; i++) marked[i] = 0;
+    for (i = 0; i < size/2; i++) marked[i] = 0;
     if (!id) index = 0;
-    prime = 2;
+    prime = 3;
     do {
         if (prime * prime > low_value)
             first = prime * prime - low_value;
@@ -86,16 +86,18 @@ int main(int argc, char *argv[]) {
             if (!(low_value % prime)) first = 0;
             else first = prime - (low_value % prime);
         }
-        for (i = first; i < size; i += prime) marked[i] = 1;
+        for (i = first; i < size; i += prime){
+            if((i+low_value)%2 == 1)  marked[i/2] = 1;
+        }
         if (!id) {
             while (marked[++index]);
-            prime = index + 2;
+            prime = (index * 2) + 3;
         }
         MPI_Bcast(&prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
     } while (prime * prime <= n);
     count = 0;
     for (i = 0; i < size; i++)
-        if (!marked[i]) count++;
+        if ( ((i+low_value)%2 == 1) && !marked[i/2]) count++;
     //if (p > 1)
         MPI_Reduce(&count, &global_count, 1, MPI_INT, MPI_SUM,
                    0, MPI_COMM_WORLD);
@@ -108,7 +110,7 @@ int main(int argc, char *argv[]) {
     /* Print the results */
 
     if (!id) {
-        printf("The total number of prime: %ld, total time: %10.6f, total node %d\n", global_count, elapsed_time, p);
+        printf("The total number of prime: %ld, total time: %10.6f, total node %d\n", global_count+1, elapsed_time, p);
     }
     MPI_Finalize();
     return 0;
