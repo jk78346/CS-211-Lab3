@@ -85,7 +85,6 @@ int main(int argc, char *argv[]) {
 
     for (i = 0; i < size/2;  i++)        marked[i]      = 0;
     for (i = 0; i < (int)(sqrt(n)); i++) marked_sqrt[i] = 0;
-    
     //if (!id) index = 0;
     index = 0;
     prime = 3;
@@ -100,10 +99,11 @@ int main(int argc, char *argv[]) {
             if((i+low_value)%2 == 1)  marked[i/2] = 1;
         }
         // each process do this part to avoid broadcast
-        for(i = (prime*prime-2) ; i < (int)(sqrt(n)) ; i+= prime){
-            if((prime*prime)%2 == 1) marked_sqrt[i/2] = 1;
+        for(i = ((prime*prime)-2) ; i < (int)(sqrt(n)) ; i+= prime){
+            if((i+2)%2 == 1) marked_sqrt[i/2] = 1;
         }
         //if (!id) {
+        
         while (marked_sqrt[++index]);
         prime = (index * 2) + 3;
         //}
@@ -122,9 +122,6 @@ int main(int argc, char *argv[]) {
 
 
     /* Print the results */
-    for(i = 0 ; i < size ; i++){
-      if(!marked[i]) printf("prime: %d\n", 2*i+3);
-    }
     if (!id) {
         printf("The total number of prime: %ld, total time: %10.6f, total node %d\n", global_count+1, elapsed_time, p);
     }
