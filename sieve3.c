@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
     unsigned long long int low_value;    /* Lowest value on this proc */
     char *marked;       /* Portion of 2,...,'n' */
     char *marked_sqrt;  /* Portion of 2,...,'sqrt(n)' */
+    unsigned long int* prime_list;
     unsigned long long int n;            /* Sieving from 2, ..., 'n' */
     int p;            /* Number of processes */
     unsigned long int proc0_size;   /* Size of proc 0's subarray */
@@ -111,6 +112,7 @@ int main(int argc, char *argv[]) {
     marked      = (char *) malloc(size/2);
     // each process need to do this but avoid broadcast
     marked_sqrt = (char *) malloc(sqrt(n));
+    prime_list  = (unsigned long int *) malloc(sqrt(n)*sizeof(unsigned long int)); 
 
     if (marked == NULL || marked_sqrt == NULL) {
         printf("Cannot allocate enough memory\n");
@@ -124,12 +126,15 @@ int main(int argc, char *argv[]) {
     index = 0;
 // find mark_sqrt first
     prime = 3;
+    unsigned long int cnt = 0;
+    prime_list[0] = 3;
     do {
         for(i = ((prime*prime)-2) ; i < (int)(sqrt(n)) ; i+= prime){
             if((i+2)%2 == 1) marked_sqrt[i/2] = 1;
         }
         while (marked_sqrt[++index]);
         prime = (index * 2) + 3;
+        prime_list[++cnt] = prime;
     } while (prime * prime <= n);
 //   =  2*i*n+3,...,2*(i*n+n-1)+3 = 2*i*n+2*n+1, i: id of line within cap, n: id of item within cache line
 //   k*(M)+2*i*n+3, ..., k*(M)+2*(i+1)*n+1 
@@ -155,8 +160,9 @@ int main(int argc, char *argv[]) {
                     marked[i/2] = 1;
                 }
             }
-            while (marked_sqrt[++index]);
-            prime = (index * 2) + 3;
+            //while (marked_sqrt[++index]);
+            //prime = (index * 2) + 3;
+            prime = prime_list[++index];
         }while(prime <= top_prime);
     }while(iter*item_per_cap <= size);
 //    do {
