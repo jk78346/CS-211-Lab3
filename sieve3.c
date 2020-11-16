@@ -35,6 +35,15 @@ int main(int argc, char *argv[]) {
     unsigned long int prime;        /* Current prime */
     unsigned long int size;         /* Elements in 'marked' */
 
+    unsigned long int cache_size    = 16*1024; // unit: Byte
+    unsigned long int line_size     = 64;      // unit: Byte
+    unsigned long int num_of_lines  = (unsigned long int)(cache_size/ line_size); //  256
+    unsigned long int item_per_line = (unsigned long int)(line_size / sizeof(int));  //16 int
+    unsigned long int item_per_cap  = (unsigned long int)(cache_size / sizeof(int));  //16 int
+    unsigned long int iter = 0;
+    unsigned long int cache_low;
+    unsigned long int cache_high;
+    int top_prime;
 /* Tardis cache info
  *  L1 D$ size:      16KB -> (4K int)
  *  L1 D$ assoc:     4 
@@ -70,14 +79,14 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &p);
     elapsed_time = -MPI_Wtime();
 
-    if (argc != 2) {
-        if (!id) printf("Command line: %s <m>\n", argv[0]);
+    if (argc != 3) {
+        if (!id) printf("Command line: %s <m> <item_per_cap>\n", argv[0]);
         MPI_Finalize();
         exit(1);
     }
 
     n = atoll(argv[1]);
-
+    item_per_cap = atoll(argv[2]);
     /* Figure out this process's share of the array, as
        well as the integers represented by the first and
        last array elements */
@@ -113,15 +122,6 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < (int)(sqrt(n)); i++) marked_sqrt[i] = 0;
     //if (!id) index = 0;
     index = 0;
-    unsigned long int cache_size    = 16*1024; // unit: Byte
-    unsigned long int line_size     = 64;      // unit: Byte
-    unsigned long int num_of_lines  = (unsigned long int)(cache_size/ line_size); //  256
-    unsigned long int item_per_line = (unsigned long int)(line_size / sizeof(int));  //16 int
-    unsigned long int item_per_cap  = (unsigned long int)(cache_size / sizeof(int));  //16 int
-    unsigned long int iter = 0;
-    unsigned long int cache_low;
-    unsigned long int cache_high;
-    int top_prime;
 // find mark_sqrt first
     prime = 3;
     do {
@@ -133,35 +133,32 @@ int main(int argc, char *argv[]) {
     } while (prime * prime <= n);
 //   =  2*i*n+3,...,2*(i*n+n-1)+3 = 2*i*n+2*n+1, i: id of line within cap, n: id of item within cache line
 //   k*(M)+2*i*n+3, ..., k*(M)+2*(i+1)*n+1 
+    
     do{
         // for each cache cap section, know the highest prime we need to check    
         iter+=1;   
-        cache_low  = low_value + (iter-1)*item_per_line;//+2*(num_of_lines)*(item_per_line-1)+1;  
-        cache_high = low_value + iter    *item_per_line;//+2*(num_of_lines)*(item_per_line-1)+1;  
+        cache_low  = low_value + (iter-1)*item_per_cap;//+2*(num_of_lines)*(item_per_line-1)+1;  
+        cache_high = low_value + iter    *item_per_cap;//+2*(num_of_lines)*(item_per_line-1)+1;  
         top_prime  = (int)sqrt(cache_high); // the top prime of this cache cap at current iter
-//printf("iter: %d, top_prime: %d\n", iter, top_prime);
+//printf("iter: %d, top_prime ceil: %d, item_per_cap: %d\n", iter, top_prime, item_per_cap);
         prime = 3;
         index = 0;
         do{        
-//printf("iter: %d, prime: %d, c_l: %d, c_h: %d\n", iter, prime, cache_low, cache_high);
             if (prime * prime > cache_low)
                 first = prime * prime - cache_low;
             else {
                 if (!(cache_low % prime)) first = 0;
                 else first = prime - (cache_low % prime);
             }
-            for (i = first+(iter-1)*item_per_line; i < MIN(first+iter*item_per_line, size); i += prime){
+            for (i = first+(iter-1)*item_per_cap; i < MIN(first+iter*item_per_cap, size); i += prime){
                 if((i+cache_low)%2 == 1){
                     marked[i/2] = 1;
-        //            printf("marked[%d]: %d = number %d, first: %d, bound: %d = MIN(%d, %d), cache_low: %d\n", i/2, marked[i/2], 2*(i/2)+3, first+(iter-1)*item_per_line, MIN(first+iter*item_per_line, size), first+item_per_line, size, cache_low);
                 }
             }
-// marked_sqrt.next
             while (marked_sqrt[++index]);
             prime = (index * 2) + 3;
         }while(prime <= top_prime);
-        //getchar();
-    }while(iter*item_per_line <= size);
+    }while(iter*item_per_cap <= size);
 //    do {
 //        if (prime * prime > low_value)
 //            first = prime * prime - low_value;
