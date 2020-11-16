@@ -145,7 +145,6 @@ int main(int argc, char *argv[]) {
         cache_low  = low_value + (iter-1)*item_per_cap;//+2*(num_of_lines)*(item_per_line-1)+1;  
         cache_high = low_value + iter    *item_per_cap;//+2*(num_of_lines)*(item_per_line-1)+1;  
         top_prime  = (int)sqrt(cache_high); // the top prime of this cache cap at current iter
-//printf("iter: %d, top_prime ceil: %d, item_per_cap: %d\n", iter, top_prime, item_per_cap);
         prime = 3;
         index = 0;
         do{        
@@ -200,7 +199,7 @@ int main(int argc, char *argv[]) {
 
     /* Print the results */
     if (!id) {
-        printf("The total number of prime: %ld, total time: %10.6f, total node %d\n", global_count+1, elapsed_time, p);
+        printf("The total number of prime: %ld, total time: %10.6f, total node %d, window size: %d\n", global_count+1, elapsed_time, p, item_per_cap);
     }
     MPI_Finalize();
     return 0;
